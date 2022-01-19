@@ -24,13 +24,13 @@ public struct HttpVersionAndMethod
 
     public HttpVersion Version
     {
-        get => (HttpVersion)(sbyte)(byte)_versionAndMethod;
+        readonly get => (HttpVersion)(sbyte)(byte)_versionAndMethod;
         set => _versionAndMethod = (_versionAndMethod & ~0xFFul) | (byte)value;
     }
 
-    public HttpMethod Method => (HttpMethod)(byte)(_versionAndMethod >> 8);
+    public readonly HttpMethod Method => (HttpMethod)(byte)(_versionAndMethod >> 8);
 
-    public int MethodEnd => (int)(uint)(_versionAndMethod >> 32);
+    public readonly int MethodEnd => (int)(uint)(_versionAndMethod >> 32);
 }
 
 public readonly struct TargetOffsetPathLength

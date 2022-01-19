@@ -976,7 +976,7 @@ internal abstract class CertificateManager
     {
     }
 
-    internal struct CheckCertificateStateResult
+    internal readonly struct CheckCertificateStateResult
     {
         public bool Success { get; }
         public string? FailureMessage { get; }
