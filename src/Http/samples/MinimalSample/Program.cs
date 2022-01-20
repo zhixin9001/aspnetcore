@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net.Http;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
@@ -12,16 +13,16 @@ builder.Services.AddHttpClient("ratelimited", o => o.BaseAddress = new Uri("http
 
 
 new RateLimitedHandler(
-    new AggregateRateLimitBuilder<HttpRequestMessage>()
-
-    .WithConcurrencyPolicy(request => request.RequestUri.ToString(),
-        new ConcurrencyLimiterOptions(2, QueueProcessingOrder.OldestFirst, 2))
+    new AggregateRateLimitBuilder<HttpRequestMessage, string>()
 
     .WithTokenBucketPolicy(request => request.Method.Equals(HttpMethod.Post) ? HttpMethod.Post.Method : null,
         new TokenBucketRateLimiterOptions(1, QueueProcessingOrder.OldestFirst, 1, TimeSpan.FromSeconds(1), 1, true))
 
     .WithPolicy(request => request.Headers.TryGetValues("cookie", out _) ? "cookie" : null,
         _ => new ConcurrencyLimiter(new ConcurrencyLimiterOptions(1, QueueProcessingOrder.NewestFirst, 1)))
+
+    .WithConcurrencyPolicy(request => request.RequestUri.AbsolutePath.StartsWith("/problem", StringComparison.InvariantCultureIgnoreCase) ? request.RequestUri.AbsolutePath : null,
+        new ConcurrencyLimiterOptions(2, QueueProcessingOrder.OldestFirst, 2))
 
     .Build()));
 
@@ -61,16 +62,19 @@ app.MapGet("/validation-problem", () =>
 app.MapGet("/validation-problem-object", () =>
     Results.Problem(new HttpValidationProblemDetails(errors) { Status = 400, Extensions = { { "traceId", "traceId123" } } }));
 
-var task = app.RunAsync();
+app.MapPost("/post", ([FromBody] string obj) => obj);
 
+var task = app.RunAsync();
 
 
 
 var factory = app.Services.GetRequiredService<IHttpClientFactory>();
 var client = factory.CreateClient("ratelimited");
 var resp = await client.GetAsync("/problem");
+resp = await client.GetAsync("/problem");
 resp = await client.GetAsync("/problem-object");
 resp = await client.GetAsync("/json");
+resp = await client.PostAsJsonAsync("/post", "{\"t\":\"content\"}");
 
 
 
@@ -93,23 +97,53 @@ class RateLimitedHandler : DelegatingHandler
         {
             return await base.SendAsync(request, cancellationToken);
         }
-        throw new Exception();
+        var response = new HttpResponseMessage(System.Net.HttpStatusCode.TooManyRequests);
+        if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            response.Headers.Add("Retry-After", ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo));
+        }
+        return response;
     }
 }
 
 #nullable enable
 namespace System.Threading.RateLimiting
 {
-    public abstract class AggregatedRateLimiter<TKey> : IAsyncDisposable, IDisposable
+    public abstract class AggregatedRateLimiter<TResource> : IAsyncDisposable, IDisposable
     {
         // an inaccurate view of resources
-        public abstract int AvailablePermits(TKey resourceID);
+        public abstract int GetAvailablePermits(TResource resourceID);
 
         // Fast synchronous attempt to acquire resources
-        public abstract RateLimitLease Acquire(TKey resourceID, int requestedCount);
+        public RateLimitLease Acquire(TResource resourceID, int permitCount = 1)
+        {
+            if (permitCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(permitCount));
+            }
+
+            return AcquireCore(resourceID, permitCount);
+        }
+
+        protected abstract RateLimitLease AcquireCore(TResource resourceID, int permitCount);
 
         // Wait until the requested resources are available
-        public abstract ValueTask<RateLimitLease> WaitAsync(TKey resourceID, int requestedCount, CancellationToken cancellationToken = default);
+        public ValueTask<RateLimitLease> WaitAsync(TResource resourceID, int permitCount = 1, CancellationToken cancellationToken = default)
+        {
+            if (permitCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(permitCount));
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return new ValueTask<RateLimitLease>(Task.FromCanceled<RateLimitLease>(cancellationToken));
+            }
+
+            return WaitAsyncCore(resourceID, permitCount, cancellationToken);
+        }
+
+        protected abstract ValueTask<RateLimitLease> WaitAsyncCore(TResource resourceID, int permitCount, CancellationToken cancellationToken);
 
         protected virtual void Dispose(bool disposing) { }
 
@@ -151,19 +185,19 @@ namespace System.Threading.RateLimiting
 
 namespace System.Threading.RateLimiting
 {
-    public class AggregateRateLimitBuilder<TKey>
+    public class AggregateRateLimitBuilder<TResource, TKey> where TKey : notnull
     {
-        private List<(Func<TKey, string?>, Func<string, RateLimiter>)> _policies = new();
+        private List<(Func<TResource, TKey?>, Func<TKey, RateLimiter>)> _policies = new();
         private TimeSpan _minRefreshInterval = TimeSpan.MaxValue;
         private RateLimiter _defaultRateLimiter = new ConcurrencyLimiter(new ConcurrencyLimiterOptions(1, QueueProcessingOrder.OldestFirst, 1));
 
-        public AggregateRateLimitBuilder<TKey> WithPolicy(Func<TKey, string?> keyFactory, Func<string, RateLimiter> limiterFactory)
+        public AggregateRateLimitBuilder<TResource, TKey> WithPolicy(Func<TResource, TKey?> keyFactory, Func<TKey, RateLimiter> limiterFactory)
         {
             _policies.Add((keyFactory, limiterFactory));
             return this;
         }
 
-        public AggregateRateLimitBuilder<TKey> WithConcurrencyPolicy(Func<TKey, string?> keyFactory, ConcurrencyLimiterOptions options)
+        public AggregateRateLimitBuilder<TResource, TKey> WithConcurrencyPolicy(Func<TResource, TKey?> keyFactory, ConcurrencyLimiterOptions options)
         {
             _policies.Add((keyFactory, _ => new ConcurrencyLimiter(options)));
             return this;
@@ -172,7 +206,7 @@ namespace System.Threading.RateLimiting
         // Should there be a RateLimiter abstraction for timer based limiters?
         // public AggregateRateLimitBuilder<TKey> WithTimerPolicy(Func<TKey, string?> keyFactory, TimeBasedRateLimiter)
 
-        public AggregateRateLimitBuilder<TKey> WithTokenBucketPolicy(Func<TKey, string?> keyFactory, TokenBucketRateLimiterOptions options)
+        public AggregateRateLimitBuilder<TResource, TKey> WithTokenBucketPolicy(Func<TResource, TKey?> keyFactory, TokenBucketRateLimiterOptions options)
         {
             if (options.AutoReplenishment)
             {
@@ -189,31 +223,31 @@ namespace System.Threading.RateLimiting
         }
 
         // might want this to be a factory if the builder is re-usable
-        public AggregateRateLimitBuilder<TKey> WithDefaultRateLimiter(RateLimiter defaultRateLimiter)
+        public AggregateRateLimitBuilder<TResource, TKey> WithDefaultRateLimiter(RateLimiter defaultRateLimiter)
         {
             _defaultRateLimiter = defaultRateLimiter;
             return this;
         }
 
-        public AggregatedRateLimiter<TKey> Build()
+        public AggregatedRateLimiter<TResource> Build()
         {
-            return new Impl<TKey>(_policies, _defaultRateLimiter, _minRefreshInterval);
+            return new Impl<TResource, TKey>(_policies, _defaultRateLimiter, _minRefreshInterval);
         }
     }
 
-    internal class Impl<TKey> : AggregatedRateLimiter<TKey>
+    internal class Impl<TResource, TKey> : AggregatedRateLimiter<TResource> where TKey : notnull
     {
-        private const string _defaultKey = "__default";
-        private readonly List<(Func<TKey, string?>, Func<string, RateLimiter>)> _policies;
+        private readonly RateLimiter _defaultRateLimiter;
+        private readonly List<(Func<TResource, TKey?>, Func<TKey, RateLimiter>)> _policies;
         private readonly Timer? _timer;
         private bool _disposed;
 
-        private readonly Dictionary<string, RateLimiter> _limiters = new();
+        private readonly Dictionary<TKey, RateLimiter> _limiters = new();
 
-        public Impl(List<(Func<TKey, string?>, Func<string, RateLimiter>)> policies, RateLimiter defaultRateLimiter, TimeSpan minRefreshInterval)
+        public Impl(List<(Func<TResource, TKey?>, Func<TKey, RateLimiter>)> policies, RateLimiter defaultRateLimiter, TimeSpan minRefreshInterval)
         {
             _policies = policies;
-            _limiters.Add(_defaultKey, defaultRateLimiter);
+            _defaultRateLimiter = defaultRateLimiter;
 
             if (minRefreshInterval != TimeSpan.MaxValue)
             {
@@ -221,33 +255,33 @@ namespace System.Threading.RateLimiting
             }
         }
 
-        public override RateLimitLease Acquire(TKey resourceID, int requestedCount)
+        protected override RateLimitLease AcquireCore(TResource resourceID, int requestedCount)
         {
             RateLimiter limiter = GetLimiter(resourceID);
 
             return limiter.Acquire(requestedCount);
         }
 
-        public override int AvailablePermits(TKey resourceID)
+        public override int GetAvailablePermits(TResource resourceID)
         {
             RateLimiter limiter = GetLimiter(resourceID);
 
             return limiter.GetAvailablePermits();
         }
 
-        public override ValueTask<RateLimitLease> WaitAsync(TKey resourceID, int requestedCount, CancellationToken cancellationToken = default)
+        protected override ValueTask<RateLimitLease> WaitAsyncCore(TResource resourceID, int requestedCount, CancellationToken cancellationToken = default)
         {
             RateLimiter limiter = GetLimiter(resourceID);
 
             return limiter.WaitAsync(requestedCount, cancellationToken);
         }
 
-        private RateLimiter GetLimiter(TKey resourceID)
+        private RateLimiter GetLimiter(TResource resourceID)
         {
             RateLimiter? limiter = null;
-            foreach ((Func<TKey, string?>, Func<string, RateLimiter>) policy in _policies)
+            foreach ((Func<TResource, TKey?>, Func<TKey, RateLimiter>) policy in _policies)
             {
-                string? id = policy.Item1(resourceID);
+                TKey? id = policy.Item1(resourceID);
                 if (id is not null)
                 {
                     lock (_policies)
@@ -266,7 +300,7 @@ namespace System.Threading.RateLimiting
             {
                 lock (_policies)
                 {
-                    limiter = _limiters[_defaultKey];
+                    limiter = _defaultRateLimiter;
                 }
             }
             return limiter;
@@ -274,11 +308,11 @@ namespace System.Threading.RateLimiting
 
         private static void Tick(object? obj)
         {
-            Impl<TKey> aggregateLimiter = (Impl<TKey>)obj!;
+            Impl<TResource, TKey> aggregateLimiter = (Impl<TResource, TKey>)obj!;
 
             lock (aggregateLimiter._policies)
             {
-                foreach (KeyValuePair<string, RateLimiter> limiter in aggregateLimiter._limiters)
+                foreach (KeyValuePair<TKey, RateLimiter> limiter in aggregateLimiter._limiters)
                 {
                     if (limiter.Value is TokenBucketRateLimiter tokenBucketRateLimiter)
                     {
@@ -347,17 +381,17 @@ namespace System.Threading.RateLimiting
             return limiter;
         }
 
-        public override RateLimitLease Acquire(HttpRequestMessage resourceID, int requestedCount)
+        protected override RateLimitLease AcquireCore(HttpRequestMessage resourceID, int requestedCount)
         {
             return GetRateLimiter(resourceID).Acquire(requestedCount);
         }
 
-        public override int AvailablePermits(HttpRequestMessage resourceID)
+        public override int GetAvailablePermits(HttpRequestMessage resourceID)
         {
             return GetRateLimiter(resourceID).GetAvailablePermits();
         }
 
-        public override ValueTask<RateLimitLease> WaitAsync(HttpRequestMessage resourceID, int requestedCount, CancellationToken cancellationToken = default)
+        protected override ValueTask<RateLimitLease> WaitAsyncCore(HttpRequestMessage resourceID, int requestedCount, CancellationToken cancellationToken = default)
         {
             return GetRateLimiter(resourceID).WaitAsync(requestedCount, cancellationToken);
         }
