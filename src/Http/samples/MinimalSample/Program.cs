@@ -6,9 +6,10 @@ using System.Globalization;
 using System.Net.Http;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddHttpClient("ratelimited", o => o.BaseAddress = new Uri("http://localhost:5000"))
+builder.Services.AddHttpClient("RateLimited", o => o.BaseAddress = new Uri("http://localhost:5000"))
     .AddHttpMessageHandler(() =>
 
 
@@ -16,7 +17,7 @@ new RateLimitedHandler(
     new AggregateRateLimitBuilder<HttpRequestMessage, string>()
 
     .WithTokenBucketPolicy(request => request.Method.Equals(HttpMethod.Post) ? HttpMethod.Post.Method : null,
-        new TokenBucketRateLimiterOptions(1, QueueProcessingOrder.OldestFirst, 1, TimeSpan.FromSeconds(1), 1, true))
+        new TokenBucketRateLimiterOptions(1, QueueProcessingOrder.OldestFirst, 10, TimeSpan.FromSeconds(1), 1, true))
 
     .WithPolicy(request => request.Headers.TryGetValues("cookie", out _) ? "cookie" : null,
         _ => new ConcurrencyLimiter(new ConcurrencyLimiterOptions(1, QueueProcessingOrder.NewestFirst, 1)))
@@ -64,28 +65,32 @@ app.MapGet("/validation-problem-object", () =>
 
 app.MapPost("/post", ([FromBody] string obj) => obj);
 
-var task = app.RunAsync();
+var appTask = app.RunAsync();
 
 
 
 var factory = app.Services.GetRequiredService<IHttpClientFactory>();
-var client = factory.CreateClient("ratelimited");
+var client = factory.CreateClient("RateLimited");
 var resp = await client.GetAsync("/problem");
 resp = await client.GetAsync("/problem");
 resp = await client.GetAsync("/problem-object");
 resp = await client.GetAsync("/json");
 resp = await client.PostAsJsonAsync("/post", "{\"t\":\"content\"}");
+for (var i = 0; i < 10; ++i)
+{
+    _ = Task.Run(() => client.PostAsJsonAsync("/post", "{\"t\":\"content\"}"));
+}
 
 
 
 
-await task;
+await appTask;
 
 class RateLimitedHandler : DelegatingHandler
 {
-    private readonly AggregatedRateLimiter<HttpRequestMessage> _rateLimiter;
+    private readonly AggregateRateLimiter<HttpRequestMessage> _rateLimiter;
 
-    public RateLimitedHandler(AggregatedRateLimiter<HttpRequestMessage> limiter)
+    public RateLimitedHandler(AggregateRateLimiter<HttpRequestMessage> limiter)
     {
         _rateLimiter = limiter;
     }
@@ -100,7 +105,7 @@ class RateLimitedHandler : DelegatingHandler
         var response = new HttpResponseMessage(System.Net.HttpStatusCode.TooManyRequests);
         if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
-            response.Headers.Add("Retry-After", ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo));
+            response.Headers.Add(HeaderNames.RetryAfter, ((int)retryAfter.TotalSeconds).ToString(NumberFormatInfo.InvariantInfo));
         }
         return response;
     }
@@ -109,7 +114,7 @@ class RateLimitedHandler : DelegatingHandler
 #nullable enable
 namespace System.Threading.RateLimiting
 {
-    public abstract class AggregatedRateLimiter<TResource> : IAsyncDisposable, IDisposable
+    public abstract class AggregateRateLimiter<TResource> : IAsyncDisposable, IDisposable
     {
         // an inaccurate view of resources
         public abstract int GetAvailablePermits(TResource resourceID);
@@ -229,13 +234,13 @@ namespace System.Threading.RateLimiting
             return this;
         }
 
-        public AggregatedRateLimiter<TResource> Build()
+        public AggregateRateLimiter<TResource> Build()
         {
             return new Impl<TResource, TKey>(_policies, _defaultRateLimiter, _minRefreshInterval);
         }
     }
 
-    internal class Impl<TResource, TKey> : AggregatedRateLimiter<TResource> where TKey : notnull
+    internal class Impl<TResource, TKey> : AggregateRateLimiter<TResource> where TKey : notnull
     {
         private readonly RateLimiter _defaultRateLimiter;
         private readonly List<(Func<TResource, TKey?>, Func<TKey, RateLimiter>)> _policies;
@@ -355,7 +360,7 @@ namespace System.Threading.RateLimiting
         }
     }
 
-    public class SimpleRateLimiterImpl : AggregatedRateLimiter<HttpRequestMessage>
+    public class SimpleRateLimiterImpl : AggregateRateLimiter<HttpRequestMessage>
     {
         private readonly ConcurrentDictionary<string, RateLimiter> _limiters = new();
         private readonly RateLimiter _defaultLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions(1, QueueProcessingOrder.OldestFirst, 1, TimeSpan.FromSeconds(1), 1, true));
