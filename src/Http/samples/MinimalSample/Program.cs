@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Net;
 using System.Net.Http;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
@@ -64,6 +65,7 @@ app.MapGet("/validation-problem-object", () =>
     Results.Problem(new HttpValidationProblemDetails(errors) { Status = 400, Extensions = { { "traceId", "traceId123" } } }));
 
 app.MapPost("/post", ([FromBody] string obj) => obj);
+
 
 var appTask = app.RunAsync();
 
@@ -399,6 +401,112 @@ namespace System.Threading.RateLimiting
         protected override ValueTask<RateLimitLease> WaitAsyncCore(HttpRequestMessage resourceID, int requestedCount, CancellationToken cancellationToken = default)
         {
             return GetRateLimiter(resourceID).WaitAsync(requestedCount, cancellationToken);
+        }
+    }
+
+    public class ConcurrentAggregateLimiter : AggregateRateLimiter<IPAddress>
+    {
+        private readonly Dictionary<string, int> _items = new();
+        private readonly object _lock = new object();
+        private const int _defaultPermitCount = 10;
+
+        public override int GetAvailablePermits(IPAddress resourceID)
+        {
+            lock (_lock)
+            {
+                if (_items.TryGetValue(resourceID.ToString(), out var value))
+                {
+                    return value;
+                }
+                return _defaultPermitCount;
+            }
+        }
+
+        protected override RateLimitLease AcquireCore(IPAddress resourceID, int permitCount)
+        {
+            return GetPermits(resourceID, permitCount);
+        }
+
+        protected override ValueTask<RateLimitLease> WaitAsyncCore(IPAddress resourceID, int permitCount, CancellationToken cancellationToken)
+        {
+            return new ValueTask<RateLimitLease>(GetPermits(resourceID, permitCount));
+        }
+
+        private RateLimitLease GetPermits(IPAddress resource, int count)
+        {
+            if (count > _defaultPermitCount)
+            {
+                return new InternalRateLimitLease(null, null, 0);
+            }
+
+            lock (_lock)
+            {
+                if (!_items.TryGetValue(resource.ToString(), out var value))
+                {
+                    _items.Add(resource.ToString(), _defaultPermitCount - count);
+                }
+                else
+                {
+                    if (value >= count)
+                    {
+                        _items[resource.ToString()] = value - count;
+                    }
+                    else
+                    {
+                        return new InternalRateLimitLease(null, null, 0);
+                    }
+                }
+            }
+            return new InternalRateLimitLease(this, resource, count);
+        }
+
+        private void Release(IPAddress resource, int count)
+        {
+            lock (_lock)
+            {
+                if (_items.TryGetValue(resource.ToString(), out var value))
+                {
+                    value += count;
+                    Diagnostics.Debug.Assert(value <= _defaultPermitCount);
+                    _items[resource.ToString()] = value;
+                }
+            }
+        }
+
+        private class InternalRateLimitLease : RateLimitLease
+        {
+            private int _count;
+            private readonly ConcurrentAggregateLimiter? _limiter;
+            private IPAddress? _resource;
+
+            public InternalRateLimitLease(ConcurrentAggregateLimiter? limiter, IPAddress? resource, int count)
+            {
+                _count = count;
+                _limiter = limiter;
+                _resource = resource;
+            }
+
+            public override bool IsAcquired => _count > 0;
+
+            public override IEnumerable<string> MetadataNames => throw new NotImplementedException();
+
+            public override bool TryGetMetadata(string metadataName, out object? metadata)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    if (_count > 0)
+                    {
+                        _limiter?.Release(_resource!, _count);
+                        _resource = null;
+                        _count = 0;
+                    }
+                }
+            }
         }
     }
 }
