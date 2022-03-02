@@ -43,7 +43,6 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         ServiceDescriptor serviceDescriptor,
         GrpcServiceOptions globalOptions,
         GrpcServiceOptions<TService> serviceOptions,
-        IServiceProvider serviceProvider,
         ILoggerFactory loggerFactory,
         IGrpcServiceActivator<TService> serviceActivator,
         GrpcHttpApiOptions httpApiOptions)

@@ -137,7 +137,6 @@ public class DynamicGrpcServiceRegistry
             methodDescriptor.Service,
             _serviceProvider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value,
             _serviceProvider.GetRequiredService<IOptions<GrpcServiceOptions<DynamicService>>>().Value,
-            _serviceProvider,
             _serviceProvider.GetRequiredService<ILoggerFactory>(),
             _serviceProvider.GetRequiredService<IGrpcServiceActivator<DynamicService>>(),
             httpApiOptions);

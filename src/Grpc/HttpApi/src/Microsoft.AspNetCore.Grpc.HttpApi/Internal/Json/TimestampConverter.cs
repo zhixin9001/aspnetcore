@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
 internal sealed class TimestampConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
 {
-    public TimestampConverter(JsonSettings settings)
+    public TimestampConverter(JsonSettings _)
     {
     }
 

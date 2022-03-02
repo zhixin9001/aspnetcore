@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
 internal sealed class WrapperConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
 {
-    public WrapperConverter(JsonSettings settings)
+    public WrapperConverter(JsonSettings _)
     {
     }
 

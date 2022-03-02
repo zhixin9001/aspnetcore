@@ -18,14 +18,12 @@ internal sealed partial class HttpApiServiceMethodProvider<TService> : IServiceM
     private readonly GrpcServiceOptions<TService> _serviceOptions;
     private readonly GrpcHttpApiOptions _httpApiOptions;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IServiceProvider _serviceProvider;
     private readonly IGrpcServiceActivator<TService> _serviceActivator;
 
     public HttpApiServiceMethodProvider(
         ILoggerFactory loggerFactory,
         IOptions<GrpcServiceOptions> globalOptions,
         IOptions<GrpcServiceOptions<TService>> serviceOptions,
-        IServiceProvider serviceProvider,
         IGrpcServiceActivator<TService> serviceActivator,
         IOptions<GrpcHttpApiOptions> httpApiOptions)
     {
@@ -34,7 +32,6 @@ internal sealed partial class HttpApiServiceMethodProvider<TService> : IServiceM
         _serviceOptions = serviceOptions.Value;
         _httpApiOptions = httpApiOptions.Value;
         _loggerFactory = loggerFactory;
-        _serviceProvider = serviceProvider;
         _serviceActivator = serviceActivator;
     }
 
@@ -66,7 +63,6 @@ internal sealed partial class HttpApiServiceMethodProvider<TService> : IServiceM
                     serviceDescriptor,
                     _globalOptions,
                     _serviceOptions,
-                    _serviceProvider,
                     _loggerFactory,
                     _serviceActivator,
                     _httpApiOptions);

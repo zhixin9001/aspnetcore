@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
 internal sealed class ValueConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
 {
-    public ValueConverter(JsonSettings settings)
+    public ValueConverter(JsonSettings _)
     {
     }
 
