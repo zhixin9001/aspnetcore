@@ -92,8 +92,8 @@ public class HttpApiServerCallContextTests
                 MethodType.Unary,
                 "Server",
                 "Method",
-                new Marshaller<object>(o => null, c => null!),
-                new Marshaller<object>(o => null, c => null!)),
+                new Marshaller<object>(o => null!, c => null!),
+                new Marshaller<object>(o => null!, c => null!)),
             new CallHandlerDescriptorInfo(
                 null,
                 null,

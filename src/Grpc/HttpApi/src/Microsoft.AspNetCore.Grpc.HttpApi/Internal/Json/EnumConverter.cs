@@ -4,19 +4,15 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf.Reflection;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class EnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : Enum
+internal sealed class EnumConverter<TEnum> : SettingsConverterBase<TEnum> where TEnum : Enum
 {
-    private readonly JsonSettings _settings;
-
-    public EnumConverter(JsonSettings settings)
+    public EnumConverter(JsonSettings settings) : base(settings)
     {
-        _settings = settings;
     }
 
     public override TEnum? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -65,7 +61,7 @@ internal sealed class EnumConverter<TEnum> : JsonConverter<TEnum> where TEnum : 
 
     public override void Write(Utf8JsonWriter writer, TEnum value, JsonSerializerOptions options)
     {
-        if (_settings.FormatEnumsAsIntegers)
+        if (Settings.FormatEnumsAsIntegers)
         {
             writer.WriteNumberValue(ConvertToInteger(value));
         }

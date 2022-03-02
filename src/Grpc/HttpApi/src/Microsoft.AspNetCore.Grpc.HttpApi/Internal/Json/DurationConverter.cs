@@ -2,16 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class DurationConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class DurationConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
-    public DurationConverter(JsonSettings settings)
+    public DurationConverter(JsonSettings settings) : base(settings)
     {
     }
 

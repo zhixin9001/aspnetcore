@@ -3,16 +3,15 @@
 
 using System.Collections;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class StructConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class StructConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
-    public StructConverter(JsonSettings settings)
+    public StructConverter(JsonSettings settings) : base(settings)
     {
     }
 

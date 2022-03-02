@@ -4,18 +4,17 @@
 using System.Collections;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class FieldMaskConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class FieldMaskConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
     private static readonly char[] FieldMaskPathSeparators = new[] { ',' };
 
-    public FieldMaskConverter(JsonSettings settings)
+    public FieldMaskConverter(JsonSettings settings) : base(settings)
     {
     }
 

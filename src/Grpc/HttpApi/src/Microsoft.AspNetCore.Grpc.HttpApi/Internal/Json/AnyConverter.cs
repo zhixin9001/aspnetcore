@@ -2,23 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class AnyConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
     internal const string AnyTypeUrlField = "@type";
     internal const string AnyWellKnownTypeValueField = "value";
 
-    private readonly JsonSettings _settings;
-
-    public AnyConverter(JsonSettings settings)
+    public AnyConverter(JsonSettings settings) : base(settings)
     {
-        _settings = settings;
     }
 
     public override TMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -33,7 +29,7 @@ internal sealed class AnyConverter<TMessage> : JsonConverter<TMessage> where TMe
         var typeUrl = urlField.GetString();
         var typeName = Any.GetTypeName(typeUrl);
 
-        var descriptor = _settings.TypeRegistry.Find(typeName);
+        var descriptor = Settings.TypeRegistry.Find(typeName);
         if (descriptor == null)
         {
             throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'");
@@ -65,7 +61,7 @@ internal sealed class AnyConverter<TMessage> : JsonConverter<TMessage> where TMe
         var typeUrl = (string)value.Descriptor.Fields[Any.TypeUrlFieldNumber].Accessor.GetValue(value);
         var data = (ByteString)value.Descriptor.Fields[Any.ValueFieldNumber].Accessor.GetValue(value);
         var typeName = Any.GetTypeName(typeUrl);
-        var descriptor = _settings.TypeRegistry.Find(typeName);
+        var descriptor = Settings.TypeRegistry.Find(typeName);
         if (descriptor == null)
         {
             throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'");
@@ -89,7 +85,7 @@ internal sealed class AnyConverter<TMessage> : JsonConverter<TMessage> where TMe
         }
         else
         {
-            MessageConverter<Any>.WriteMessageFields(writer, valueMessage, _settings, options);
+            MessageConverter<Any>.WriteMessageFields(writer, valueMessage, Settings, options);
         }
 
         writer.WriteEndObject();

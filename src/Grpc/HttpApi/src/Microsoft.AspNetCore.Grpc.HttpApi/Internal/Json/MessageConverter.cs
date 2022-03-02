@@ -3,7 +3,6 @@
 
 using System.Collections;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Type = System.Type;
@@ -12,14 +11,12 @@ namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
 // This converter should be temporary until System.Text.Json supports overriding contacts.
 // We want to eliminate this converter because System.Text.Json has to buffer content in converters.
-internal sealed class MessageConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class MessageConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
-    private readonly JsonSettings _settings;
     private readonly Dictionary<string, FieldDescriptor> _jsonFieldMap;
 
-    public MessageConverter(JsonSettings settings)
+    public MessageConverter(JsonSettings settings) : base(settings)
     {
-        _settings = settings;
         _jsonFieldMap = CreateJsonFieldMap((new TMessage()).Descriptor.Fields.InFieldNumberOrder());
     }
 
@@ -95,7 +92,7 @@ internal sealed class MessageConverter<TMessage> : JsonConverter<TMessage> where
     {
         writer.WriteStartObject();
 
-        WriteMessageFields(writer, message, _settings, options);
+        WriteMessageFields(writer, message, Settings, options);
 
         writer.WriteEndObject();
     }

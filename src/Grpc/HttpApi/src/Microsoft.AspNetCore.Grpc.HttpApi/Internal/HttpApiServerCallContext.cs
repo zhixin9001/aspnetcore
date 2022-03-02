@@ -54,7 +54,7 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
 
     protected override string HostCore => HttpContext.Request.Host.Value;
 
-    protected override string? PeerCore
+    protected override string PeerCore
     {
         get
         {
@@ -144,7 +144,7 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
                     }
                     else
                     {
-                        _requestHeaders.Add(header.Key, header.Value);
+                        _requestHeaders.Add(header.Key, header.Value!);
                     }
                 }
             }
@@ -182,9 +182,10 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
         }
     }
 
-    protected override IDictionary<object, object?> UserStateCore => HttpContext.Items;
+    // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+    protected override IDictionary<object, object> UserStateCore => HttpContext.Items!;
 
-    protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
+    protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
     {
         throw new NotImplementedException();
     }

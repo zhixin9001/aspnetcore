@@ -3,16 +3,15 @@
 
 using System.Collections;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
-internal sealed class ListValueConverter<TMessage> : JsonConverter<TMessage> where TMessage : IMessage, new()
+internal sealed class ListValueConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
-    public ListValueConverter(JsonSettings settings)
+    public ListValueConverter(JsonSettings settings) : base(settings)
     {
     }
 
