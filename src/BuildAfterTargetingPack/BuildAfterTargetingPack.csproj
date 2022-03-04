@@ -9,7 +9,7 @@
     <TargetFramework>$(DefaultNetCoreTargetFramework)</TargetFramework>
 
     <!-- Fake a unit test project unless that would prevent building this project. -->
-    <IsUnitTestProject Condition=" '$(SkipTestBuild)' == 'true' ">true</IsUnitTestProject>
+    <IsUnitTestProject Condition=" '$(SkipTestBuild)' != 'true' ">true</IsUnitTestProject>
   </PropertyGroup>
 
   <ItemGroup>
