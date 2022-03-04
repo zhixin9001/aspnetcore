@@ -311,7 +311,7 @@ public class JsonConverterReadTests
   ""oneofName2"": ""test""
 }";
 
-        AssertReadJsonError<HelloRequest>(json, ex => Assert.Equal("Multiple values specified for oneof oneof_test", ex.Message));
+        AssertReadJsonError<HelloRequest>(json, ex => Assert.Equal("Multiple values specified for oneof oneof_test", ex.Message.TrimEnd('.')));
     }
 
     [Fact]

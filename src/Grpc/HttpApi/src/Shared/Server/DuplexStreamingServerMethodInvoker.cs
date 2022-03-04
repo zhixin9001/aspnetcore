@@ -88,7 +88,7 @@ internal sealed class DuplexStreamingServerMethodInvoker<TService, TRequest, TRe
     /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
     /// <param name="requestStream">The <typeparamref name="TRequest"/> reader.</param>
     /// <param name="responseStream">The <typeparamref name="TResponse"/> writer.</param>
-    /// <returns>A <see cref="Task{TResponse}"/> that represents the asynchronous method.</returns>
+    /// <returns>A <see cref="Task"/> that represents the asynchronous method.</returns>
     public async Task Invoke(HttpContext httpContext, ServerCallContext serverCallContext, IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream)
     {
         if (_pipelineInvoker == null)

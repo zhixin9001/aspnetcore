@@ -18,7 +18,7 @@ internal sealed class DurationConverter<TMessage> : SettingsConverterBase<TMessa
     {
         if (reader.TokenType != JsonTokenType.String)
         {
-            throw new InvalidOperationException("Expected string value for Duration");
+            throw new InvalidOperationException("Expected string value for Duration.");
         }
 
         var (seconds, nanos) = Legacy.ParseDuration(reader.GetString()!);

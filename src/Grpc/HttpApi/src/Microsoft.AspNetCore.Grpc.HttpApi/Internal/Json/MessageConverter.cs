@@ -45,7 +45,7 @@ internal sealed class MessageConverter<TMessage> : SettingsConverterBase<TMessag
                         {
                             if (fieldDescriptor.ContainingOneof.Accessor.GetCaseFieldDescriptor(message) != null)
                             {
-                                throw new InvalidOperationException($"Multiple values specified for oneof {fieldDescriptor.ContainingOneof.Name}");
+                                throw new InvalidOperationException($"Multiple values specified for oneof {fieldDescriptor.ContainingOneof.Name}.");
                             }
                         }
 

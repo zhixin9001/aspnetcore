@@ -22,17 +22,16 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
         using var d = JsonDocument.ParseValue(ref reader);
         if (!d.RootElement.TryGetProperty(AnyTypeUrlField, out var urlField))
         {
-            throw new InvalidOperationException("Any message with no @type");
+            throw new InvalidOperationException("Any message with no @type.");
         }
 
-        var message = new TMessage();
         var typeUrl = urlField.GetString();
         var typeName = Any.GetTypeName(typeUrl);
 
         var descriptor = Settings.TypeRegistry.Find(typeName);
         if (descriptor == null)
         {
-            throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'");
+            throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'.");
         }
 
         IMessage data;
@@ -40,7 +39,7 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
         {
             if (!d.RootElement.TryGetProperty(AnyWellKnownTypeValueField, out var valueField))
             {
-                throw new InvalidOperationException($"Expected '{AnyWellKnownTypeValueField}' property for well-known type Any body");
+                throw new InvalidOperationException($"Expected '{AnyWellKnownTypeValueField}' property for well-known type Any body.");
             }
 
             data = (IMessage)JsonSerializer.Deserialize(valueField, descriptor.ClrType, options)!;
@@ -50,6 +49,7 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
             data = (IMessage)JsonSerializer.Deserialize(d.RootElement, descriptor.ClrType, options)!;
         }
 
+        var message = new TMessage();
         message.Descriptor.Fields[Any.TypeUrlFieldNumber].Accessor.SetValue(message, typeUrl);
         message.Descriptor.Fields[Any.ValueFieldNumber].Accessor.SetValue(message, data.ToByteString());
 
@@ -64,7 +64,7 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
         var descriptor = Settings.TypeRegistry.Find(typeName);
         if (descriptor == null)
         {
-            throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'");
+            throw new InvalidOperationException($"Type registry has no descriptor for type name '{typeName}'.");
         }
         var valueMessage = descriptor.Parser.ParseFrom(data);
         writer.WriteStartObject();

@@ -18,7 +18,7 @@ internal sealed class TimestampConverter<TMessage> : SettingsConverterBase<TMess
     {
         if (reader.TokenType != JsonTokenType.String)
         {
-            throw new InvalidOperationException("Expected string value for Timestamp");
+            throw new InvalidOperationException("Expected string value for Timestamp.");
         }
         var (seconds, nanos) = Legacy.ParseTimestamp(reader.GetString()!);
 

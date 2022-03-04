@@ -33,7 +33,7 @@ internal sealed class EnumConverter<TEnum> : SettingsConverterBase<TEnum> where 
             case JsonTokenType.Null:
                 return default;
             default:
-                throw new InvalidOperationException($"Unexpected JSON token: {reader.TokenType}");
+                throw new InvalidOperationException($"Unexpected JSON token: {reader.TokenType}.");
         }
     }
 

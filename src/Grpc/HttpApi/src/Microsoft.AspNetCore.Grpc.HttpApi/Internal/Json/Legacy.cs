@@ -170,7 +170,7 @@ internal static class Legacy
         }
         else
         {
-            throw new InvalidOperationException("Non-normalized timestamp value");
+            throw new InvalidOperationException("Non-normalized timestamp value.");
         }
     }
 
@@ -183,7 +183,7 @@ internal static class Legacy
         }
         var sign = match.Groups["sign"].Value;
         var secondsText = match.Groups["int"].Value;
-        // Prohibit leading insignficant zeroes
+        // Prohibit leading insignificant zeroes
         if (secondsText[0] == '0' && secondsText.Length > 1)
         {
             throw new InvalidOperationException("Invalid Duration value: " + value);
@@ -233,7 +233,7 @@ internal static class Legacy
         }
         else
         {
-            throw new InvalidOperationException("Non-normalized duration value");
+            throw new InvalidOperationException("Non-normalized duration value.");
         }
     }
 

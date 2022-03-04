@@ -12,8 +12,6 @@ namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
 
 internal sealed class FieldMaskConverter<TMessage> : SettingsConverterBase<TMessage> where TMessage : IMessage, new()
 {
-    private static readonly char[] FieldMaskPathSeparators = new[] { ',' };
-
     public FieldMaskConverter(JsonSettings settings) : base(settings)
     {
     }
@@ -24,10 +22,10 @@ internal sealed class FieldMaskConverter<TMessage> : SettingsConverterBase<TMess
 
         if (reader.TokenType != JsonTokenType.String)
         {
-            throw new InvalidOperationException("Expected string value for FieldMask");
+            throw new InvalidOperationException("Expected string value for FieldMask.");
         }
         // TODO: Do we *want* to remove empty entries? Probably okay to treat "" as "no paths", but "foo,,bar"?
-        var jsonPaths = reader.GetString()!.Split(FieldMaskPathSeparators, StringSplitOptions.RemoveEmptyEntries);
+        var jsonPaths = reader.GetString()!.Split(',', StringSplitOptions.RemoveEmptyEntries);
         var messagePaths = (IList)message.Descriptor.Fields[FieldMask.PathsFieldNumber].Accessor.GetValue(message);
         foreach (var path in jsonPaths)
         {
@@ -47,7 +45,7 @@ internal sealed class FieldMaskConverter<TMessage> : SettingsConverterBase<TMess
         }
         else
         {
-            throw new InvalidOperationException($"Invalid field mask to be converted to JSON: {firstInvalid}");
+            throw new InvalidOperationException($"Invalid field mask to be converted to JSON: {firstInvalid}.");
         }
     }
 }
