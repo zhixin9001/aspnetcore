@@ -60,7 +60,7 @@
       Returns="@(HelixWorkItem)">
     <MSBuild Projects="@(RequiresDelayedBuild)"
         BuildInParallel="$(BuildInParallel)"
-        SkipNonexistentTargets="true">
+        SkipNonexistentTargets="true"
         Targets="CreateHelixPayload">
       <Output TaskParameter="TargetOutputs" ItemName="HelixWorkItem" />
     </MSBuild>
