@@ -17,6 +17,9 @@
 
     <!-- Nothing from this project ships whether we're faking a unit test project or not. -->
     <IsShipping>false</IsShipping>
+
+    <!-- Build.props is main thing that references this project. -->
+    <IsProjectReferenceProvider>false</IsProjectReferenceProvider>
   </PropertyGroup>
 
   <ItemGroup>

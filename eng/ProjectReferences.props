@@ -159,6 +159,5 @@
     <ProjectReferenceProvider Include="Microsoft.Extensions.Features" ProjectPath="$(RepoRoot)src\Extensions\Features\src\Microsoft.Extensions.Features.csproj" />
     <ProjectReferenceProvider Include="Microsoft.AspNetCore.Grpc.HttpApi" ProjectPath="$(RepoRoot)src\Grpc\HttpApi\src\Microsoft.AspNetCore.Grpc.HttpApi\Microsoft.AspNetCore.Grpc.HttpApi.csproj" />
     <ProjectReferenceProvider Include="Microsoft.AspNetCore.Grpc.Swagger" ProjectPath="$(RepoRoot)src\Grpc\HttpApi\src\Microsoft.AspNetCore.Grpc.Swagger\Microsoft.AspNetCore.Grpc.Swagger.csproj" />
-    <ProjectReferenceProvider Include="BuildAfterTargetingPack" ProjectPath="$(RepoRoot)src\BuildAfterTargetingPack\BuildAfterTargetingPack.csproj" />
   </ItemGroup>
 </Project>
