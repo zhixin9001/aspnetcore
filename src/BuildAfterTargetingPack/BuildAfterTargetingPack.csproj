@@ -1,4 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project>
+  <!-- Fake a unit test project unless that would prevent building this project. -->
+  <PropertyGroup>
+    <IsUnitTestProject Condition=" '$(SkipTestBuild)' != 'true' ">true</IsUnitTestProject>
+  </PropertyGroup>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
   <!--
     Forward targets to @(RequiresDelayedBuild) projects after App.Ref has built. Intended for projects that
     cannot restore without our App.Ref layout and aren't referenced elsewhere in the repo. For projects
@@ -8,8 +15,8 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultNetCoreTargetFramework)</TargetFramework>
 
-    <!-- Fake a unit test project unless that would prevent building this project. -->
-    <IsUnitTestProject Condition=" '$(SkipTestBuild)' != 'true' ">true</IsUnitTestProject>
+    <!-- Nothing from this project ships whether we're faking a unit test project or not. -->
+    <IsShipping>false</IsShipping>
   </PropertyGroup>
 
   <ItemGroup>
@@ -76,4 +83,6 @@
   <Target Name="VSTestDelayedProjects" BeforeTargets="VSTest" Condition=" '$(DotNetBuildFromSource)' != 'true' ">
     <MSBuild Projects="@(RequiresDelayedBuild)" BuildInParallel="$(BuildInParallel)" Targets="VSTest" />
   </Target>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>
