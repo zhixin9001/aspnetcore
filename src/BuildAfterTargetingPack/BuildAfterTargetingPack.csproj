@@ -58,7 +58,10 @@
       BeforeTargets="CreateHelixPayload"
       Condition=" '$(DotNetBuildFromSource)' != 'true' "
       Returns="@(HelixWorkItem)">
-    <MSBuild Projects="@(RequiresDelayedBuild)" BuildInParallel="$(BuildInParallel)" Targets="CreateHelixPayload">
+    <MSBuild Projects="@(RequiresDelayedBuild)"
+        BuildInParallel="$(BuildInParallel)"
+        SkipNonexistentTargets="true">
+        Targets="CreateHelixPayload">
       <Output TaskParameter="TargetOutputs" ItemName="HelixWorkItem" />
     </MSBuild>
   </Target>
