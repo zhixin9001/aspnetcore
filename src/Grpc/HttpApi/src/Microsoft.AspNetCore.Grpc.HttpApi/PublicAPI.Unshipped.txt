@@ -12,6 +12,8 @@ Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatDefaultValues.get -> bool
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatDefaultValues.set -> void
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatEnumsAsIntegers.get -> bool
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatEnumsAsIntegers.set -> void
+Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatInt64sAsIntegers.get -> bool
+Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.FormatInt64sAsIntegers.set -> void
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.JsonSettings() -> void
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.TypeRegistry.get -> Google.Protobuf.Reflection.TypeRegistry!
 Microsoft.AspNetCore.Grpc.HttpApi.JsonSettings.TypeRegistry.set -> void

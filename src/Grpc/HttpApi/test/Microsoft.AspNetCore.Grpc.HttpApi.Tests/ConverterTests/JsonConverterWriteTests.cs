@@ -130,7 +130,9 @@ public class JsonConverterWriteTests
     {
         var wrappers = new HelloRequest.Types.DataTypes();
 
-        AssertWrittenJson(wrappers, new JsonSettings { FormatDefaultValues = true });
+        AssertWrittenJson(
+            wrappers,
+            new JsonSettings { FormatDefaultValues = true, FormatInt64sAsIntegers = false });
     }
 
     [Fact]
@@ -430,7 +432,7 @@ public class JsonConverterWriteTests
             HelloRequest.Descriptor.File,
             Timestamp.Descriptor.File);
 
-        settings = settings ?? new JsonSettings { TypeRegistry = typeRegistery, FormatDefaultValues = false };
+        settings = settings ?? new JsonSettings { TypeRegistry = typeRegistery, FormatDefaultValues = false, FormatInt64sAsIntegers = false };
 
         var jsonSerializerOptions = CreateSerializerOptions(settings, typeRegistery);
 

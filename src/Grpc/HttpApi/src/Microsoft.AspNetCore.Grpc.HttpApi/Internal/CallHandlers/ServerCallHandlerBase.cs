@@ -41,6 +41,8 @@ internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
 
         try
         {
+            serverCallContext.Initialize();
+
             var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
 
             if (handleCallTask.IsCompletedSuccessfully)

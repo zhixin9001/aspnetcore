@@ -87,15 +87,18 @@ internal static class JsonRequestHelpers
 
     public static async Task SendErrorResponse(HttpResponse response, Encoding encoding, Status status, JsonSerializerOptions options)
     {
+        if (!response.HasStarted)
+        {
+            response.StatusCode = MapStatusCodeToHttpStatus(status.StatusCode);
+            response.ContentType = MediaType.ReplaceEncoding("application/json", encoding);
+        }
+
         var e = new Error
         {
             Error_ = status.Detail,
             Message = status.Detail,
             Code = (int)status.StatusCode
         };
-
-        response.StatusCode = MapStatusCodeToHttpStatus(status.StatusCode);
-        response.ContentType = MediaType.ReplaceEncoding("application/json", encoding);
 
         await WriteResponseMessage(response, encoding, e, options);
     }

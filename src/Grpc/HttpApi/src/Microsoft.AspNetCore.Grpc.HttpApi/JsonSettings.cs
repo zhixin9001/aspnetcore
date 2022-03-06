@@ -34,6 +34,8 @@ public class JsonSettings
 
     public bool FormatEnumsAsIntegers { get; set; }
 
+    public bool FormatInt64sAsIntegers { get; set; } = true;
+
     public TypeRegistry TypeRegistry { get; set; } = TypeRegistry.Empty;
 
     public bool WriteIndented { get; set; } = true;

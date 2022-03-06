@@ -11,6 +11,7 @@ using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Grpc.HttpApi.Internal.CallHandlers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Internal;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal;
@@ -25,8 +26,10 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
     public HttpContext HttpContext { get; }
     public MethodOptions Options { get; }
     public CallHandlerDescriptorInfo DescriptorInfo { get; }
-    public bool IsJsonRequestContent { get; }
-    public Encoding RequestEncoding { get; }
+    public bool IsJsonRequestContent { get; private set; }
+    // Default request encoding to UTF8 so an encoding is available
+    // if the request sends an invalid/unsupported encoding.
+    public Encoding RequestEncoding { get; private set; } = Encoding.UTF8;
 
     internal ILogger Logger { get; }
 
@@ -41,11 +44,15 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
         _method = method;
         DescriptorInfo = descriptorInfo;
         Logger = logger;
-        IsJsonRequestContent = JsonRequestHelpers.HasJsonContentType(httpContext.Request, out var charset);
+    }
+
+    public void Initialize()
+    {
+        IsJsonRequestContent = JsonRequestHelpers.HasJsonContentType(HttpContext.Request, out var charset);
         RequestEncoding = JsonRequestHelpers.GetEncodingFromCharset(charset) ?? Encoding.UTF8;
 
         // Add the HttpContext to UserState so GetHttpContext() continues to work
-        HttpContext.Items["__HttpContext"] = httpContext;
+        HttpContext.Items["__HttpContext"] = HttpContext;
     }
 
     public ServerCallContext ServerCallContext => this;
@@ -213,6 +220,17 @@ internal sealed class HttpApiServerCallContext : ServerCallContext, IServerCallC
             }
         }
 
+        EnsureResponseHeaders();
+
         return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+    }
+
+    internal void EnsureResponseHeaders()
+    {
+        if (!HttpContext.Response.HasStarted)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status200OK;
+            HttpContext.Response.ContentType = MediaType.ReplaceEncoding("application/json", RequestEncoding);
+        }
     }
 }

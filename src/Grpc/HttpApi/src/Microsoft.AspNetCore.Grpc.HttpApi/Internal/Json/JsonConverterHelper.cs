@@ -45,7 +45,7 @@ internal static class JsonConverterHelper
         };
         options.Converters.Add(new NullValueConverter());
         options.Converters.Add(new ByteStringConverter());
-        options.Converters.Add(new Int64Converter());
+        options.Converters.Add(new Int64Converter(settings));
         options.Converters.Add(new UInt64Converter());
         options.Converters.Add(new BoolConverter());
         options.Converters.Add(new JsonConverterFactoryForEnum(settings));

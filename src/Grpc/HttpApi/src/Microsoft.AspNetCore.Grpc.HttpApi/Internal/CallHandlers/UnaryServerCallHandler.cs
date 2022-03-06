@@ -5,7 +5,6 @@ using System.Text.Json;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.CallHandlers;
@@ -43,8 +42,7 @@ internal sealed class UnaryServerCallHandler<TService, TRequest, TResponse> : Se
             throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
         }
 
-        httpContext.Response.StatusCode = StatusCodes.Status200OK;
-        httpContext.Response.ContentType = MediaType.ReplaceEncoding("application/json", serverCallContext.RequestEncoding);
+        serverCallContext.EnsureResponseHeaders();
 
         await JsonRequestHelpers.SendMessage(serverCallContext, SerializerOptions, response);
     }
