@@ -872,12 +872,6 @@ public class UnaryServerCallHandlerTests : LoggedTest
     }
 
     [Fact]
-    public void FailingTestExample()
-    {
-        Assert.Equal(1, 2);
-    }
-
-    [Fact]
     public async Task HandleCallAsync_Any_Success()
     {
         // Arrange

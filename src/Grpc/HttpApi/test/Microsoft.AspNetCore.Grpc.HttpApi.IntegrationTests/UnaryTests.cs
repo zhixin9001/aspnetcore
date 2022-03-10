@@ -179,7 +179,6 @@ public class UnaryTests : IntegrationTestBase
         content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
 
         // Act
-
         var response = await client.PostAsync("/v1/greeter", content).DefaultTimeout();
         var responseText = await response.Content.ReadAsStringAsync();
         using var result = JsonDocument.Parse(responseText);
