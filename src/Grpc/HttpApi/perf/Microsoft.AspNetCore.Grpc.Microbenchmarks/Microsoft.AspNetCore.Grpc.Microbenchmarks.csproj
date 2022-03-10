@@ -2,6 +2,10 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultNetCoreTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TieredCompilation>false</TieredCompilation>
+    <DefineConstants>$(DefineConstants);IS_BENCHMARKS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,5 +16,7 @@
     <Reference Include="Google.Protobuf" />
     <Reference Include="Grpc.Tools" PrivateAssets="All" />
     <Reference Include="Microsoft.AspNetCore.Grpc.HttpApi" />
+
+    <Compile Include="$(SharedSourceRoot)BenchmarkRunner\*.cs" />
   </ItemGroup>
 </Project>
