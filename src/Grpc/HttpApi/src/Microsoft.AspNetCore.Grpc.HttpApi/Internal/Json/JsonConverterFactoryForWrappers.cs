@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Protobuf;
+using Grpc.Shared;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
@@ -31,7 +32,7 @@ internal class JsonConverterFactoryForWrappers : JsonConverterFactory
             return false;
         }
 
-        return JsonConverterHelper.IsWrapperType(descriptor);
+        return ServiceDescriptorHelpers.IsWrapperType(descriptor);
     }
 
     public override JsonConverter CreateConverter(

@@ -67,9 +67,9 @@ internal class GrpcDataContractResolver : ISerializerDataContractResolver
 
     private DataContract ConvertMessage(MessageDescriptor messageDescriptor)
     {
-        if (IsWellKnownType(messageDescriptor))
+        if (ServiceDescriptorHelpers.IsWellKnownType(messageDescriptor))
         {
-            if (IsWrapperType(messageDescriptor))
+            if (ServiceDescriptorHelpers.IsWrapperType(messageDescriptor))
             {
                 var field = messageDescriptor.Fields[Int32Value.ValueFieldNumber];
 
@@ -140,24 +140,4 @@ internal class GrpcDataContractResolver : ISerializerDataContractResolver
 
         return schema;
     }
-
-    private static readonly HashSet<string> WellKnownTypeNames = new HashSet<string>
-    {
-        "google/protobuf/any.proto",
-        "google/protobuf/api.proto",
-        "google/protobuf/duration.proto",
-        "google/protobuf/empty.proto",
-        "google/protobuf/wrappers.proto",
-        "google/protobuf/timestamp.proto",
-        "google/protobuf/field_mask.proto",
-        "google/protobuf/source_context.proto",
-        "google/protobuf/struct.proto",
-        "google/protobuf/type.proto",
-    };
-
-    internal static bool IsWellKnownType(MessageDescriptor messageDescriptor) => messageDescriptor.File.Package == "google.protobuf" &&
-        WellKnownTypeNames.Contains(messageDescriptor.File.Name);
-
-    internal static bool IsWrapperType(MessageDescriptor messageDescriptor) => messageDescriptor.File.Package == "google.protobuf" &&
-        messageDescriptor.File.Name == "google/protobuf/wrappers.proto";
 }

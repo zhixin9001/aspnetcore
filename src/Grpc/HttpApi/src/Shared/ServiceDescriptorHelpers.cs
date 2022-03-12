@@ -31,6 +31,26 @@ namespace Grpc.Shared;
 
 internal static class ServiceDescriptorHelpers
 {
+    private static readonly HashSet<string> WellKnownTypeNames = new HashSet<string>
+    {
+        "google/protobuf/any.proto",
+        "google/protobuf/api.proto",
+        "google/protobuf/duration.proto",
+        "google/protobuf/empty.proto",
+        "google/protobuf/wrappers.proto",
+        "google/protobuf/timestamp.proto",
+        "google/protobuf/field_mask.proto",
+        "google/protobuf/source_context.proto",
+        "google/protobuf/struct.proto",
+        "google/protobuf/type.proto",
+    };
+
+    internal static bool IsWellKnownType(MessageDescriptor messageDescriptor) => messageDescriptor.File.Package == "google.protobuf" &&
+        WellKnownTypeNames.Contains(messageDescriptor.File.Name);
+
+    internal static bool IsWrapperType(MessageDescriptor m) =>
+        m.File.Package == "google.protobuf" && m.File.Name == "google/protobuf/wrappers.proto";
+
     public static ServiceDescriptor? GetServiceDescriptor(Type serviceReflectionType)
     {
         var property = serviceReflectionType.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
@@ -222,21 +242,12 @@ internal static class ServiceDescriptorHelpers
         }
     }
 
-    internal static bool IsWrapperType(MessageDescriptor m) => m.File.Package == "google.protobuf" && m.File.Name == "google/protobuf/wrappers.proto";
-
     public static bool TryGetHttpRule(MethodDescriptor methodDescriptor, [NotNullWhen(true)]out HttpRule? httpRule)
     {
-        // Protobuf id of the HttpRule field
-        const int HttpRuleFieldId = 72295728;
+        var options = methodDescriptor.GetOptions();
+        httpRule = options?.GetExtension(AnnotationsExtensions.Http);
 
-        // CustomOptions is obsolete
-        // We can use `methodDescriptor.GetOption(AnnotationsExtensions.Http)` but there
-        // is an error thrown when there is no option on the method.
-        // TODO(JamesNK): Remove obsolete code when issue is fixed. https://github.com/protocolbuffers/protobuf/issues/7127
-
-#pragma warning disable CS0618 // Type or member is obsolete
-        return methodDescriptor.CustomOptions.TryGetMessage<HttpRule>(HttpRuleFieldId, out httpRule);
-#pragma warning restore CS0618 // Type or member is obsolete
+        return httpRule != null;
     }
 
     public static bool TryResolvePattern(HttpRule http, [NotNullWhen(true)]out string? pattern, [NotNullWhen(true)]out string? verb)

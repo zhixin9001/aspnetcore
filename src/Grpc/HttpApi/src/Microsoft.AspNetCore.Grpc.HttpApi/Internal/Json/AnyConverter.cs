@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Shared;
 using Type = System.Type;
 
 namespace Microsoft.AspNetCore.Grpc.HttpApi.Internal.Json;
@@ -35,7 +36,7 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
         }
 
         IMessage data;
-        if (JsonConverterHelper.IsWellKnownType(descriptor))
+        if (ServiceDescriptorHelpers.IsWellKnownType(descriptor))
         {
             if (!d.RootElement.TryGetProperty(AnyWellKnownTypeValueField, out var valueField))
             {
@@ -70,10 +71,10 @@ internal sealed class AnyConverter<TMessage> : SettingsConverterBase<TMessage> w
         writer.WriteStartObject();
         writer.WriteString(AnyTypeUrlField, typeUrl);
 
-        if (JsonConverterHelper.IsWellKnownType(descriptor))
+        if (ServiceDescriptorHelpers.IsWellKnownType(descriptor))
         {
             writer.WritePropertyName(AnyWellKnownTypeValueField);
-            if (JsonConverterHelper.IsWrapperType(descriptor))
+            if (ServiceDescriptorHelpers.IsWrapperType(descriptor))
             {
                 var wrappedValue = valueMessage.Descriptor.Fields[JsonConverterHelper.WrapperValueFieldNumber].Accessor.GetValue(valueMessage);
                 JsonSerializer.Serialize(writer, wrappedValue, wrappedValue.GetType(), options);

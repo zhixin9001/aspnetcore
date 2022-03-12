@@ -80,6 +80,40 @@ public class HttpApiServiceMethodProviderTests
     }
 
     [Fact]
+    public void AddMethod_Success_HttpRuleFoundLogged()
+    {
+        // Arrange
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+
+        // Act
+        var endpoints = MapEndpoints<HttpApiGreeterService>(
+            configureLogging: c =>
+            {
+                c.AddProvider(testProvider);
+                c.SetMinimumLevel(LogLevel.Trace);
+            });
+
+        // Assert
+        var write = testSink.Writes.Single(w =>
+        {
+            if (w.EventId.Name != "HttpRuleFound")
+            {
+                return false;
+            }
+            var values = (IReadOnlyList<KeyValuePair<string, object?>>)w.State;
+            if ((string)values.Single(v => v.Key == "MethodName").Value! != "SayHello")
+            {
+                return false;
+            }
+
+            return true;
+        });
+
+        Assert.Equal(@"Found HttpRule mapping. Method SayHello on http_api.HttpApiGreeter. HttpRule payload: { ""get"": ""/v1/greeter/{name}"" }", write.Message);
+    }
+
+    [Fact]
     public void AddMethod_StreamingMethods_ThrowNotFoundError()
     {
         // Arrange
@@ -95,8 +129,8 @@ public class HttpApiServiceMethodProviderTests
             });
 
         // Assert
-        Assert.Contains(testSink.Writes, c => c.Message == "Unable to bind GetClientStreaming on Microsoft.AspNetCore.Grpc.HttpApi.Tests.TestObjects.HttpApiStreamingService to HTTP API. Streaming methods are not supported.");
-        Assert.Contains(testSink.Writes, c => c.Message == "Unable to bind GetBidiStreaming on Microsoft.AspNetCore.Grpc.HttpApi.Tests.TestObjects.HttpApiStreamingService to HTTP API. Streaming methods are not supported.");
+        Assert.Contains(testSink.Writes, c => c.Message == "Unable to bind GetClientStreaming on http_api.HttpApiStreaming to HTTP API. Client and bidirectional streaming methods are not supported.");
+        Assert.Contains(testSink.Writes, c => c.Message == "Unable to bind GetBidiStreaming on http_api.HttpApiStreaming to HTTP API. Client and bidirectional streaming methods are not supported.");
 
         var matchedEndpoints = FindGrpcEndpoints(endpoints, nameof(HttpApiStreamingService.GetServerStreaming));
         var endpoint = Assert.Single(matchedEndpoints);

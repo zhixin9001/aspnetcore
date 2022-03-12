@@ -63,7 +63,7 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         if (TryGetMethodDescriptor(method.Name, out var methodDescriptor) &&
             ServiceDescriptorHelpers.TryGetHttpRule(methodDescriptor, out _))
         {
-            Log.StreamingMethodNotSupported(_logger, method.Name, typeof(TService));
+            Log.StreamingMethodNotSupported(_logger, method.Name, method.ServiceName);
         }
     }
 
@@ -72,7 +72,7 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         if (TryGetMethodDescriptor(method.Name, out var methodDescriptor) &&
             ServiceDescriptorHelpers.TryGetHttpRule(methodDescriptor, out _))
         {
-            Log.StreamingMethodNotSupported(_logger, method.Name, typeof(TService));
+            Log.StreamingMethodNotSupported(_logger, method.Name, method.ServiceName);
         }
     }
 
@@ -82,6 +82,7 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         {
             if (ServiceDescriptorHelpers.TryGetHttpRule(methodDescriptor, out var httpRule))
             {
+                LogMethodHttpRule(method, httpRule);
                 ProcessHttpRule(method, methodDescriptor, httpRule, CreateServerStreamingRequestDelegate);
             }
             else
@@ -102,6 +103,7 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         {
             if (ServiceDescriptorHelpers.TryGetHttpRule(methodDescriptor, out var httpRule))
             {
+                LogMethodHttpRule(method, httpRule);
                 ProcessHttpRule(method, methodDescriptor, httpRule, CreateUnaryRequestDelegate);
             }
             else
@@ -113,6 +115,14 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
         else
         {
             Log.MethodDescriptorNotFound(_logger, method.Name, typeof(TService));
+        }
+    }
+
+    private void LogMethodHttpRule(IMethod method, HttpRule httpRule)
+    {
+        if (_logger.IsEnabled(LogLevel.Trace))
+        {
+            Log.HttpRuleFound(_logger, method.Name, method.ServiceName, httpRule.ToString());
         }
     }
 
@@ -272,10 +282,13 @@ internal sealed partial class HttpApiProviderServiceBinder<TService> : ServiceBi
 
     private static partial class Log
     {
-        [LoggerMessage(1, LogLevel.Warning, "Unable to bind {MethodName} on {ServiceType} to HTTP API. Streaming methods are not supported.", EventName = "StreamingMethodNotSupported")]
-        public static partial void StreamingMethodNotSupported(ILogger logger, string methodName, Type serviceType);
-
-        [LoggerMessage(2, LogLevel.Warning, "Unable to find method descriptor for {MethodName} on {ServiceType}.", EventName = "MethodDescriptorNotFound")]
+        [LoggerMessage(1, LogLevel.Warning, "Unable to find method descriptor for {MethodName} on {ServiceType}.", EventName = "MethodDescriptorNotFound")]
         public static partial void MethodDescriptorNotFound(ILogger logger, string methodName, Type serviceType);
+
+        [LoggerMessage(2, LogLevel.Warning, "Unable to bind {MethodName} on {ServiceName} to HTTP API. Client and bidirectional streaming methods are not supported.", EventName = "StreamingMethodNotSupported")]
+        public static partial void StreamingMethodNotSupported(ILogger logger, string methodName, string serviceName);
+
+        [LoggerMessage(3, LogLevel.Trace, "Found HttpRule mapping. Method {MethodName} on {ServiceName}. HttpRule payload: {HttpRulePayload}", EventName = "HttpRuleFound", SkipEnabledCheck = true)]
+        public static partial void HttpRuleFound(ILogger logger, string methodName, string serviceName, string httpRulePayload);
     }
 }
